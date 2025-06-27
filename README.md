@@ -13,7 +13,7 @@ The use of this script does require the use of an API Key from NASA. Thankfully,
 If you are just curious about using these scripts and dont want to bother with your own key yet, you may be able to use the NASA `DEMO_KEY` key. Heads up though, this demo key is very limited with only 30 requests per IP per hour.
 
 ## Logging
-Logging is set up to log to the `logs.log` using pythons built in logging package.
+Logging is set up to log to the `logs.log` file using pythons built in logging package.
 
 An example log segment looks like this:
 ```

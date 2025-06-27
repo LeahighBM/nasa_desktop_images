@@ -45,8 +45,8 @@ def set_wallpaper(img: str):
     try:
         subprocess.run(command, shell=True)
     except FileNotFoundError as e:
-        # logger.error(e)
-        print(e)
+        logger.error(e)
+        
 
 def fetch_and_store():
 
@@ -56,7 +56,6 @@ def fetch_and_store():
         check_headers(resp.headers)
         resp.raise_for_status()
     except RequestException as e:
-        print("Error making GET to Baseline URL for image info.", e)
         logger.error("Error making GET to Baseline URL for image info.", e)
 
     data = resp.json()
@@ -79,21 +78,16 @@ def fetch_and_store():
         resp.raise_for_status()
 
         with open(file_name, "wb") as f:
-            print("writing to file")
             logger.info(f"Writing to file {file_name}")
             for chunk in resp.iter_content():
                 f.write(chunk)
-        print("Success")
         logger.info("File write was successful.")
 
     except RequestException as e:
-        print("Ran into an error while downloading image", e)
         logger.error("Ran into an error while downloading image", e)
     except IOError as e:
-        print("Error writing to file", e)
         logger.error("Error writing to file", e)
 
-    # print(image_name)
     set_wallpaper(img=f"{image_name}.png")
 
 def archive():
@@ -105,7 +99,6 @@ def archive():
             os.rename(f"{FILE_PATH}/{file}", f"{FILE_PATH}/Archived/{file}")
             logger.info(f"File {file} successfully archived.")
         except FileNotFoundError as e:
-            print("File was not found.", e)
             logger.error("File was not found.", e)
 
 
