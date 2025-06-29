@@ -3,6 +3,10 @@ import os
 import re
 import logging
 import subprocess
+import random
+import sys
+import pathlib
+from enum import Enum
 from requests.exceptions import RequestException
 
 
@@ -19,13 +23,19 @@ from requests.exceptions import RequestException
 # Re work archive flow to prevent black screen from appearing 
 #   before image is downloaded and set
 
+# retry logic on days where there are no images?
+
 NASA_KEY = os.environ.get("NASA_API_KEY")
-BASE_URL = f"https://api.nasa.gov/EPIC/api/natural?api_key={NASA_KEY}"
+BASE_URL = f"https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos"
 FILE_PATH = os.path.expanduser("~/Pictures/Wallpapers/NASA")
 MIN_REQ_REMAIN = 2000
+MAX_SOL = 4500
+
+path = pathlib.Path(__file__).resolve().parent
+
 
 logging.basicConfig(
-    filename="logs.log",
+    filename=f"{path}/logs.log",
     level=logging.INFO,
     format= '%(asctime)s.%(msecs)03d: %(levelname)s | %(message)s',
     datefmt="%Y-%m-%d %H:%M:%S"
@@ -35,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 def check_headers(header):
     if int(header["X-Ratelimit-Remaining"])  < MIN_REQ_REMAIN:
-        logger.warning(f"X-Ratelimit-Remaining of {header["X-Ratelimit-Remaining"]}"
+        logger.warning(f"X-Ratelimit-Remaining of {header["X-Ratelimit-Remaining"]} "
                        f"is below the configured minimum of {MIN_REQ_REMAIN}.")
 
 def set_wallpaper(img: str):
@@ -48,33 +58,33 @@ def set_wallpaper(img: str):
         logger.error(e)
         
 
-def fetch_and_store():
+def main():
 
+    sol = random.randint(1,MAX_SOL)
     try:
-        logger.info("Making request out to api.nasa.gov for image information")
-        resp = requests.get(url = BASE_URL)
-        check_headers(resp.headers)
+        logger.info(f"Making request out to api.nasa.gov for image information for sol {sol}")
+        resp = requests.get(url = f"{BASE_URL}?sol={sol}&api_key={NASA_KEY}")
+        # check_headers(resp.headers)
         resp.raise_for_status()
     except RequestException as e:
         logger.error("Error making GET to Baseline URL for image info.", e)
 
     data = resp.json()
 
-    image_name = data[0]["image"]
-    date_time = (data[0]["date"])
-    ymd = re.findall(r"\d{4}-\d{2}-\d{2}", date_time)
-    ymd = ymd[0].split("-")
-    y = ymd[0]
-    m = ymd[1]
-    d = ymd[2]
-
-    img_url = f"https://api.nasa.gov/EPIC/archive/natural/{y}/{m}/{d}/png/{image_name}.png?api_key={NASA_KEY}" 
-
-    file_name = f"{FILE_PATH}/{image_name}.png"
+    if len(data["photos"]) == 0:
+        logger.warning(f"No images found for Sol {sol}. Program exiting with status 1.")
+        sys.exit(1)
+    
+    image_url = data["photos"][0]["img_src"]
+    image_sensor = data["photos"][0]["camera"]["name"]
+    image_name = f"SOL_{data["photos"][0]["sol"]}_{image_sensor}_{data["photos"][0]["id"]}"
+    data_type = data["photos"][0]["img_src"][-3:]
+    
+    file_name = f"{FILE_PATH}/{image_name}.{data_type}"
     try:
-        logger.info(f"Making request to api.nasa.gov for image {image_name} from date {y}/{m}/{d}")
-        resp = requests.get(img_url, stream=True)
-        check_headers(resp.headers)
+        logger.info(f"Making request to api.nasa.gov for curiosity image from {image_sensor} for SOL {sol}")
+        resp = requests.get(image_url, stream=True)
+        # check_headers(resp.headers)
         resp.raise_for_status()
 
         with open(file_name, "wb") as f:
@@ -88,7 +98,7 @@ def fetch_and_store():
     except IOError as e:
         logger.error("Error writing to file", e)
 
-    set_wallpaper(img=f"{image_name}.png")
+    set_wallpaper(img=f"{image_name}.{data_type}")
 
 def archive():
     logger.info(f"Archving any existing files into {FILE_PATH}/Archived")
@@ -103,5 +113,5 @@ def archive():
 
 
 if __name__ == "__main__":
-    archive()
-    fetch_and_store()
+    # archive()
+    main()

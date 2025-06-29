@@ -2,3 +2,4 @@ env/
 *.json
 *.png
 logs.log
+scratch.py
