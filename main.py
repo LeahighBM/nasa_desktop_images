@@ -88,9 +88,8 @@ def main():
     data = resp.json()
 
     if len(data["photos"]) == 0:
-        logger.warning(f"No images found for Sol {sol}. Program exiting with status 1.")
-        # Without cron this will need definite rework
-        sys.exit(1)
+        logger.warning(f"No images found for Sol {sol}. Program exiting this iteration with status -1.")
+        return -1
     
     image_url    = data["photos"][0]["img_src"]
     image_sensor = data["photos"][0]["camera"]["name"]
